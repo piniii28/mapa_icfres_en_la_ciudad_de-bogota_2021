@@ -1,0 +1,67 @@
+library(leaflet)
+library(sf)
+library(dplyr)
+setwd("C:/Users/EQUIPO/Desktop/pruebassaber12.21/PruebasSaber12.21")
+colegios <- st_read("PruebasSaber_2021_12.shp")
+setwd("C:/Users/EQUIPO/Desktop/pruebassaber12.21/loca")
+localidades<- st_read("loca.shp")
+map <- leaflet() %>%
+  addProviderTiles("OpenStreetMap.Mapnik")
+localidades <- st_transform(localidades, crs = 4326)
+colegios <- st_transform(colegios, crs = 4326)
+map <- map %>%
+  addPolygons(
+    data = localidades,
+    fillColor = ~colorNumeric(palette = "YlOrRd", domain = colegios$P_Puntaje_)(Colegio_SE),
+    fillOpacity = 0.7,
+    color = "white",
+    weight = 1,
+    popup = ~paste("Localidad: ", LocNombre)
+  )
+map <- map %>%
+  addPolygons(
+    data = localidades,
+    fillColor = "blue",  # Puedes ajustar el color según tus preferencias
+    fillOpacity = 0.7,
+    color = "white",
+    weight = 1,
+    popup = ~paste("Localidad: ", LocNombre)
+  )
+
+colegios_coords <- st_coordinates(colegios)
+colegios_sf <- st_as_sf(colegios, coords = colegios_coords) 
+
+View(colegios)
+
+map <- map %>%
+  addCircleMarkers(
+    data = colegios_sf,  # Usar el objeto sf
+    fillColor = ~colorNumeric(palette = "YlOrRd", domain = colegios$P_Puntaje_)(P_Puntaje_),
+    fillOpacity = 1,
+    stroke = FALSE,
+    radius = 5,
+    popup = ~paste("Colegio: ", colegios$COLEGIO_SE, "<br>Puntaje: ", P_Puntaje_)
+  )
+
+map
+install.packages("leaflet.extras")
+library(leaflet.extras)
+
+legend_labels <- c("Baja", "Media", "Alta")  # Etiquetas de la leyenda
+n_colors <- length(legend_labels)
+legend_colors <- colorNumeric(palette = "YlOrRd", domain = colegios$P_Puntaje_)(1:n_colors)
+custom_palette <- colorRampPalette(c("yellow", "orange", "red")) 
+legend_colors <- custom_palette(n_colors)
+map <- map %>%
+  addLegend(
+    colors = legend_colors,
+    labels = legend_labels,
+    title = "Nivel de Puntaje",
+    opacity = 1,
+    position = "bottomright"
+  )
+map
+
+library(htmlwidgets)
+saveWidget(map, "mapa_interactivo.html")
+getwd()
